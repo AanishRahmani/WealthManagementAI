@@ -84,16 +84,39 @@ def show_client_profile():
         if not notes and not uploaded_file:
             st.error("Please provide either notes or a document.")
         else:
-            cid = int(time.time() % 100000)
+            client_payload = {}
+            if name:
+                client_payload["full_name"] = name
+            if notes:
+                client_payload["goals"] = notes
+
+            client_result = api_call("/clients", method="post", data=client_payload)
+            if not client_result:
+                st.error("Failed to create client.")
+                return
+
+            cid = client_result.get("client_id")
+            if cid is None:
+                st.error("Client creation failed: missing client_id.")
+                return
+
             st.session_state.client_id = cid
-            payload = {"client_id": str(cid), "client_notes": notes if notes else ""}
-            files = {"file": (uploaded_file.name, uploaded_file.getvalue(), uploaded_file.type)} if uploaded_file else None
-            
-            result = api_call("/upload", method="post", data=payload, files=files)
-            if result:
+
+            upload_payload = {
+                "client_id": str(cid),
+                "client_full_name": name if name else None,
+                "client_goals": notes if notes else None,
+                "client_notes": notes if notes else None,
+            }
+            upload_files = {"file": (uploaded_file.name, uploaded_file.getvalue(), uploaded_file.type)} if uploaded_file else None
+
+            upload_result = api_call("/upload", method="post", data=upload_payload, files=upload_files)
+            if upload_result:
                 st.success("Profile created. Proceeding to assessment...")
                 st.session_state.current_stage = 2
                 st.rerun()
+            else:
+                st.error("Failed to upload client documents.")
 
 # --- STAGE 2: ASSESSMENT ---
 def show_assessment():

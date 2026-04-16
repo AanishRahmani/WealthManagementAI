@@ -4,7 +4,7 @@ import uuid
 import queue
 import threading
 
-from app.core.sqlite_db import get_connection
+from app.core.sqlite_db import get_connection, get_client, update_client
 from app.core.chroma_db import add_document
 from app.services.file_parser import extract_text
 
@@ -175,17 +175,37 @@ threading.Thread(
 @router.post("/upload")
 async def upload_file(
     client_id: int = Form(...),
+    client_full_name: str | None = Form(default=None),
+    client_goals: str | None = Form(default=None),
     client_notes: str | None = Form(default=None),
     file: UploadFile | None = File(default=None),
 ):
     print(f"DEBUG: Upload request received")
     print(f"DEBUG: client_id = {client_id}")
+    print(f"DEBUG: client_full_name = {client_full_name}")
+    print(f"DEBUG: client_goals = {client_goals}")
     print(f"DEBUG: client_notes = {client_notes}")
     print(f"DEBUG: file = {file}")
     print(f"DEBUG: file.filename = {file.filename if file else None}")
     print(f"DEBUG: file.content_type = {file.content_type if file else None}")
     
     validate_upload(file, client_notes)
+
+    client_record = get_client(client_id)
+
+    if client_record is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Client not found. Create a client record before uploading files.",
+        )
+
+    if client_full_name or client_goals:
+        update_client(
+            client_id=client_id,
+            full_name=client_full_name,
+            goals=client_goals,
+            portfolio_path=str(Path("data/uploads")),
+        )
 
     if file is None:
         notes_text = (client_notes or "").strip()

@@ -34,6 +34,20 @@ def _safe_lastrowid(cur: Cursor) -> int:
     return int(row_id)
 
 
+def _ensure_column_exists(
+    conn: Connection,
+    table: str,
+    column_name: str,
+    definition: str,
+) -> None:
+    cur = conn.cursor()
+    cur.execute(f"PRAGMA table_info({table})")
+    columns = [row["name"] for row in cur.fetchall()]
+
+    if column_name not in columns:
+        cur.execute(f"ALTER TABLE {table} ADD COLUMN {column_name} {definition}")
+
+
 # Connection Manager
 
 
@@ -99,11 +113,15 @@ def init_db() -> None:
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 uuid TEXT NOT NULL UNIQUE,
                 full_name TEXT,
-                photo_filepath TEXT,
+                goals TEXT,
+                portfolio_path TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
             """
         )
+
+        _ensure_column_exists(conn, "clients", "goals", "TEXT")
+        _ensure_column_exists(conn, "clients", "portfolio_path", "TEXT")
 
         # Assessment Answers
 
@@ -304,7 +322,8 @@ def delete_uploaded_file(
 def create_client(
     client_uuid: str,
     full_name: str | None = None,
-    photo_filepath: str | None = None,
+    goals: str | None = None,
+    portfolio_path: str | None = None,
 ) -> int:
     with get_connection() as conn:
         cur = conn.cursor()
@@ -314,18 +333,47 @@ def create_client(
             INSERT INTO clients (
                 uuid,
                 full_name,
-                photo_filepath
+                goals,
+                portfolio_path
             )
-            VALUES (?, ?, ?)
+            VALUES (?, ?, ?, ?)
             """,
             (
                 client_uuid,
                 full_name,
-                photo_filepath,
+                goals,
+                portfolio_path,
             ),
         )
 
         return _safe_lastrowid(cur)
+
+
+def update_client(
+    client_id: int,
+    full_name: str | None = None,
+    goals: str | None = None,
+    portfolio_path: str | None = None,
+) -> None:
+    with get_connection() as conn:
+        cur = conn.cursor()
+
+        cur.execute(
+            """
+            UPDATE clients
+            SET
+                full_name = COALESCE(?, full_name),
+                goals = COALESCE(?, goals),
+                portfolio_path = COALESCE(?, portfolio_path)
+            WHERE id = ?
+            """,
+            (
+                full_name,
+                goals,
+                portfolio_path,
+                client_id,
+            ),
+        )
 
 
 def get_client_by_uuid(
@@ -618,9 +666,11 @@ def get_all_client_ids() -> list[int]:
         ]
 
         for table in tables:
+            key = "id" if table == "clients" else "client_id"
+
             cur.execute(
                 f"""
-                SELECT DISTINCT client_id
+                SELECT DISTINCT {key} AS client_id
                 FROM {table}
                 """
             )

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 from typing import Any, cast
 
 from app.core.llm import get_llm
@@ -8,6 +9,8 @@ from app.core.sqlite_db import (
     get_connection,
     get_latest_analysis_report,
 )
+
+logger = logging.getLogger(__name__)
 
 
 # Config
@@ -400,15 +403,18 @@ Conversation:
 """
 
     try:
+        logger.debug("LLM summary prompt: %s", prompt)
         llm = get_llm()
         response = llm.invoke(prompt)
+        logger.debug("LLM summary response: %s", response)
 
         summary = extract_text_content(response)
 
         if not summary:
             summary = DEFAULT_SUMMARY
 
-    except Exception:
+    except Exception as exc:
+        logger.exception("LLM summary invocation failed")
         summary = DEFAULT_SUMMARY
 
     with get_connection() as conn:
@@ -566,16 +572,19 @@ def generate_reply(
     )
 
     try:
+        logger.debug("LLM chat prompt: %s", prompt)
         llm = get_llm()
         response = llm.invoke(prompt)
-        print(llm)
-        print(response)
+        logger.debug("LLM chat response: %s", response)
+
         reply = extract_text_content(response)
-        print(reply)
+        logger.debug("LLM chat reply text: %s", reply)
+
         if not reply:
             reply = "I need a little more detail to give useful guidance."
 
-    except Exception:
+    except Exception as exc:
+        logger.exception("LLM chat invocation failed")
         reply = "I’m temporarily unable to respond right now. Please try again shortly."
 
     return reply

@@ -124,7 +124,8 @@ WealthAdvisorAI/
 ## API Endpoints
 
 ### Upload
-- `POST /v1/upload` - Upload documents and notes
+- `POST /v1/upload` - Upload documents and notes; also update client goals when `client_goals` is provided
+- `POST /v1/clients` - Create a new client with UUID and goals
 
 ### Assessment
 - `GET /v1/assessment/next/{client_id}` - Get next question

@@ -1,3 +1,4 @@
+import logging
 from typing import Any
 
 from pydantic import BaseModel, Field
@@ -6,6 +7,8 @@ from langchain_core.prompts import PromptTemplate
 from langchain_core.output_parsers import JsonOutputParser
 
 from app.core.llm import get_llm
+
+logger = logging.getLogger(__name__)
 
 from app.services.scoring_engine import (
     calculate_risk_score,
@@ -82,6 +85,19 @@ Do not invent numbers.
     chain = prompt | get_llm() | parser
 
     try:
+        logger.debug(
+            "LLM risk agent inputs: %s",
+            {
+                "profile": str(profile),
+                "portfolio": {
+                    "allocation": portfolio.get("allocation", {}),
+                    "sector_exposure": portfolio.get("sector_exposure", {}),
+                    "holdings_count": len(portfolio.get("holdings", [])),
+                },
+                "score": score,
+                "drivers": str(drivers),
+            },
+        )
         result = chain.invoke(
             {
                 "profile": str(profile),
@@ -104,8 +120,10 @@ Do not invent numbers.
                 "drivers": str(drivers),
             }
         )
+        logger.debug("LLM risk agent response: %s", result)
 
-    except Exception:
+    except Exception as exc:
+        logger.exception("LLM risk agent invocation failed")
         result = {
             "risk_level": level,
             "top_risks": drivers,

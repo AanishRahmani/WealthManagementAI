@@ -5,7 +5,11 @@ from pydantic import BaseModel, Field
 from langchain_core.prompts import PromptTemplate
 from langchain_core.output_parsers import JsonOutputParser
 
+import logging
+
 from app.core.llm import get_llm
+
+logger = logging.getLogger(__name__)
 
 from app.services.projection_engine import (
     generate_projection,
@@ -277,6 +281,26 @@ Do not invent unsupported claims.
     chain = prompt | get_llm() | parser
 
     try:
+        logger.debug(
+            "LLM recommendation agent inputs: %s",
+            {
+                "profile": str(profile),
+                "portfolio": {
+                    "allocation": allocation,
+                    "sector_exposure": portfolio.get("sector_exposure", {}),
+                    "diversification_score": portfolio.get(
+                        "diversification_score",
+                        0,
+                    ),
+                },
+                "risk": {
+                    "risk_level": risk.get("risk_level", "Moderate"),
+                    "risk_score": risk_score,
+                },
+                "projection": str(projection),
+                "actions": str(action_text),
+            },
+        )
         result = chain.invoke(
             {
                 "profile": str(profile),
@@ -306,8 +330,10 @@ Do not invent unsupported claims.
                 "actions": str(action_text),
             }
         )
+        logger.debug("LLM recommendation agent response: %s", result)
 
-    except Exception:
+    except Exception as exc:
+        logger.exception("LLM recommendation agent invocation failed")
         result = {
             "strategy_focus": "Balanced long-term growth",
             "top_actions": action_text,
