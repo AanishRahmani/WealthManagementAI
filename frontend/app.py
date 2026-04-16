@@ -206,6 +206,7 @@ def show_assessment():
         if st.button("Continue to AI Analysis →", type="primary"):
             st.session_state.current_stage = 3
             st.rerun()
+        return
 
 # --- STAGE 3: AI-POWERED ANALYSIS ---
 def show_analysis_progress():
