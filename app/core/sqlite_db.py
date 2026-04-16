@@ -91,6 +91,20 @@ def init_db() -> None:
             """
         )
 
+        # Clients
+
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS clients (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                uuid TEXT NOT NULL UNIQUE,
+                full_name TEXT,
+                photo_filepath TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+            """
+        )
+
         # Assessment Answers
 
         cur.execute(
@@ -285,6 +299,77 @@ def delete_uploaded_file(
         return cur.rowcount > 0
 
 
+# Clients
+
+def create_client(
+    client_uuid: str,
+    full_name: str | None = None,
+    photo_filepath: str | None = None,
+) -> int:
+    with get_connection() as conn:
+        cur = conn.cursor()
+
+        cur.execute(
+            """
+            INSERT INTO clients (
+                uuid,
+                full_name,
+                photo_filepath
+            )
+            VALUES (?, ?, ?)
+            """,
+            (
+                client_uuid,
+                full_name,
+                photo_filepath,
+            ),
+        )
+
+        return _safe_lastrowid(cur)
+
+
+def get_client_by_uuid(
+    client_uuid: str,
+) -> dict[str, Any] | None:
+    with get_connection() as conn:
+        cur = conn.cursor()
+
+        cur.execute(
+            """
+            SELECT *
+            FROM clients
+            WHERE uuid = ?
+            LIMIT 1
+            """,
+            (client_uuid,),
+        )
+
+        row = cur.fetchone()
+
+    return dict(row) if row else None
+
+
+def get_client(
+    client_id: int,
+) -> dict[str, Any] | None:
+    with get_connection() as conn:
+        cur = conn.cursor()
+
+        cur.execute(
+            """
+            SELECT *
+            FROM clients
+            WHERE id = ?
+            LIMIT 1
+            """,
+            (client_id,),
+        )
+
+        row = cur.fetchone()
+
+    return dict(row) if row else None
+
+
 # Assessment
 
 
@@ -454,6 +539,11 @@ def client_exists(
 
         cur.execute(
             """
+            SELECT 1 FROM clients
+            WHERE id = ?
+
+            UNION
+
             SELECT 1 FROM uploaded_files
             WHERE client_id = ?
 
@@ -475,6 +565,7 @@ def client_exists(
             LIMIT 1
             """,
             (
+                client_id,
                 client_id,
                 client_id,
                 client_id,
@@ -519,6 +610,7 @@ def get_all_client_ids() -> list[int]:
         cur = conn.cursor()
 
         tables = [
+            "clients",
             "uploaded_files",
             "assessment_answers",
             "analysis_reports",
