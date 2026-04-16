@@ -66,8 +66,8 @@ Risk Score:
 
 Drivers:
 {drivers}
-Write 500 to 600 professional words.
-Be concise but insightful.
+Write 500 to 600 words of professional content.
+be rationale in decision making. 
 Explain why the score matters.
 Mention strongest risk and one positive factor.
 No fluff.
@@ -98,6 +98,12 @@ Do not invent numbers.
                 "drivers": str(drivers),
             },
         )
+        print("\n" + "="*50)
+        print("🚀 [START] Invoking Risk Agent AI...")
+        print(f"📊 Inputs -> Score: {score} | Drivers: {len(drivers)}")
+        print("⏳ Waiting for Hugging Face inference...")
+        print("="*50 + "\n")
+        
         result = chain.invoke(
             {
                 "profile": str(profile),
@@ -120,9 +126,20 @@ Do not invent numbers.
                 "drivers": str(drivers),
             }
         )
+        
+        print("\n" + "="*50)
+        print("✅ [SUCCESS] Risk Agent AI Inference Completed!")
+        print(f"📝 Output -> Risk Level: {result.get('risk_level', 'N/A')}")
+        print("="*50 + "\n")
+        
         logger.debug("LLM risk agent response: %s", result)
 
     except Exception as exc:
+        print("\n" + "="*50)
+        print("❌ [ERROR] Risk Agent AI Inference Failed!")
+        import traceback
+        traceback.print_exc()
+        print("="*50 + "\n")
         logger.exception("LLM risk agent invocation failed")
         result = {
             "risk_level": level,

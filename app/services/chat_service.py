@@ -8,7 +8,9 @@ from app.core.llm import get_llm
 from app.core.sqlite_db import (
     get_connection,
     get_latest_analysis_report,
+    DB_PATH
 )
+import asyncio
 
 logger = logging.getLogger(__name__)
 
@@ -562,32 +564,75 @@ def build_chat_prompt(
 # Reply Engine
 
 
+from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
+
+async def async_generate_reply(session_id: int, user_message: str, client_id: int) -> str:
+    from langchain_mcp_adapters.client import MultiServerMCPClient
+    from langchain_mcp_adapters.tools import load_mcp_tools
+    from langchain.agents import create_tool_calling_agent, AgentExecutor
+    from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+
+    # Construct complete absolute path for DB
+    db_abs_path = str(DB_PATH.absolute())
+
+    client = MultiServerMCPClient({
+        "sqlite": {
+            "transport": "stdio",
+            "command": "mcp-sqlite",
+            "args": [db_abs_path],
+        }
+    })
+
+    try:
+        async with client.session("sqlite") as session:
+            tools = await load_mcp_tools(session)
+            
+            system_prompt = build_system_prompt(session_id)
+            analysis_context = build_analysis_context(client_id)
+            
+            full_system = system_prompt
+            if analysis_context:
+                full_system += f"\n\n{analysis_context}"
+
+            history = get_recent_messages(session_id, limit=MAX_CONTEXT_MESSAGES)
+            
+            chat_history = []
+            for item in history:
+                role = item.get("role", "user")
+                msg = item.get("message", "")
+                if role == "user":
+                    chat_history.append(HumanMessage(content=msg))
+                else:
+                    chat_history.append(AIMessage(content=msg))
+
+            prompt = ChatPromptTemplate.from_messages([
+                ("system", full_system),
+                MessagesPlaceholder(variable_name="chat_history"),
+                ("user", "{input}"),
+                MessagesPlaceholder(variable_name="agent_scratchpad"),
+            ])
+            
+            llm = get_llm()
+            agent = create_tool_calling_agent(llm, tools, prompt)
+            agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True, handle_parsing_errors=True)
+            
+            response = await agent_executor.ainvoke({
+                "input": user_message, 
+                "chat_history": chat_history
+            })
+            
+            return str(response.get("output", ""))
+
+    except Exception as exc:
+        logger.exception("Failed to invoke agent with MCP tools")
+        return "I'm temporarily unable to access my deep analysis tools or respond right now."
+
 def generate_reply(
     session_id: int,
     user_message: str,
+    client_id: int,
 ) -> str:
-    prompt = build_chat_prompt(
-        session_id=session_id,
-        user_message=user_message,
-    )
-
-    try:
-        logger.debug("LLM chat prompt: %s", prompt)
-        llm = get_llm()
-        response = llm.invoke(prompt)
-        logger.debug("LLM chat response: %s", response)
-
-        reply = extract_text_content(response)
-        logger.debug("LLM chat reply text: %s", reply)
-
-        if not reply:
-            reply = "I need a little more detail to give useful guidance."
-
-    except Exception as exc:
-        logger.exception("LLM chat invocation failed")
-        reply = "I’m temporarily unable to respond right now. Please try again shortly."
-
-    return reply
+    return asyncio.run(async_generate_reply(session_id, user_message, client_id))
 
 
 # Public Method
@@ -606,6 +651,10 @@ def send_message(
 
     if not clean_message:
         raise ValueError("Message cannot be empty.")
+        
+    client_id = session.get("client_id")
+    if not isinstance(client_id, int):
+        raise ValueError("Invalid client_id inside session database")
 
     save_message(
         session_id=session_id,
@@ -616,6 +665,7 @@ def send_message(
     reply = generate_reply(
         session_id=session_id,
         user_message=clean_message,
+        client_id=client_id,
     )
 
     save_message(

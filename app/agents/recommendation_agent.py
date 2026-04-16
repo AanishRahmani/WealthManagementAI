@@ -265,7 +265,7 @@ Projection:
 Actions:
 {actions}
 
-Write 2-3 practical advisory sentences.
+Write 500 to 600 words of practical advisory content.
 Explain strategic rationale.
 Mention likely improvement areas.
 Do not invent unsupported claims.
@@ -303,6 +303,7 @@ Do not invent unsupported claims.
                 "actions": str(action_text),
             },
         )
+        print("Invoking Recommendation Agent AI for strategy generation...")
         result = chain.invoke(
             {
                 "profile": str(profile),
@@ -335,6 +336,11 @@ Do not invent unsupported claims.
         logger.debug("LLM recommendation agent response: %s", result)
 
     except Exception as exc:
+        print("\n" + "="*50)
+        print("❌ [ERROR] Recommendation Agent AI Inference Failed!")
+        import traceback
+        traceback.print_exc()
+        print("="*50 + "\n")
         logger.exception("LLM recommendation agent invocation failed")
         result = {
             "strategy_focus": "Balanced long-term growth",
