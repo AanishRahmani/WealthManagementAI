@@ -508,6 +508,13 @@ Focus on:
 - long-term planning
 - realistic financial guidance
 
+Database Schema Helper:
+If using your SQLite tools, you have access to the following tables:
+- `clients` (id, full_name, etc)
+- `analysis_reports` (id, client_id, payload, created_at)
+- `chat_sessions` and `chat_messages`
+Do NOT query tables named "analysis" or "reports". Use "analysis_reports".
+
 Session Title:
 {title}
 """
@@ -569,8 +576,8 @@ from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
 async def async_generate_reply(session_id: int, user_message: str, client_id: int) -> str:
     from langchain_mcp_adapters.client import MultiServerMCPClient
     from langchain_mcp_adapters.tools import load_mcp_tools
-    from langchain.agents import create_tool_calling_agent, AgentExecutor
-    from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+    from langchain.agents import create_agent
+    from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
 
     # Construct complete absolute path for DB
     db_abs_path = str(DB_PATH.absolute())
@@ -596,32 +603,29 @@ async def async_generate_reply(session_id: int, user_message: str, client_id: in
 
             history = get_recent_messages(session_id, limit=MAX_CONTEXT_MESSAGES)
             
-            chat_history = []
+            messages = [SystemMessage(content=full_system)]
             for item in history:
                 role = item.get("role", "user")
                 msg = item.get("message", "")
                 if role == "user":
-                    chat_history.append(HumanMessage(content=msg))
+                    messages.append(HumanMessage(content=msg))
                 else:
-                    chat_history.append(AIMessage(content=msg))
-
-            prompt = ChatPromptTemplate.from_messages([
-                ("system", full_system),
-                MessagesPlaceholder(variable_name="chat_history"),
-                ("user", "{input}"),
-                MessagesPlaceholder(variable_name="agent_scratchpad"),
-            ])
+                    messages.append(AIMessage(content=msg))
+                    
+            messages.append(HumanMessage(content=user_message))
             
             llm = get_llm()
-            agent = create_tool_calling_agent(llm, tools, prompt)
-            agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True, handle_parsing_errors=True)
+            agent = create_agent(llm, tools)
             
-            response = await agent_executor.ainvoke({
-                "input": user_message, 
-                "chat_history": chat_history
-            })
+            response = await agent.ainvoke({"messages": messages})
             
-            return str(response.get("output", ""))
+            # Extract final message string from the returned history
+            output_messages = response.get("messages", [])
+            if output_messages:
+                last_message = output_messages[-1]
+                return str(getattr(last_message, 'content', last_message))
+            
+            return ""
 
     except Exception as exc:
         logger.exception("Failed to invoke agent with MCP tools")
@@ -632,11 +636,29 @@ def generate_reply(
     user_message: str,
     client_id: int,
 ) -> str:
+    # Use the MCP tool-calling agent:
     return asyncio.run(async_generate_reply(session_id, user_message, client_id))
 
+    # --- OLD NON-AGENT BEHAVIOR (PRESERVED AS REQUESTED) ---
+    # prompt = build_chat_prompt(
+    #     session_id=session_id,
+    #     user_message=user_message,
+    # )
+    # try:
+    #     logger.debug("LLM chat prompt: %s", prompt)
+    #     llm = get_llm()
+    #     response = llm.invoke(prompt)
+    #     logger.debug("LLM chat response: %s", response)
+    #     reply = extract_text_content(response)
+    #     logger.debug("LLM chat reply text: %s", reply)
+    #     if not reply:
+    #         reply = "I need a little more detail to give useful guidance."
+    # except Exception as exc:
+    #     logger.exception("LLM chat invocation failed")
+    #     reply = "I’m temporarily unable to respond right now. Please try again shortly."
+    # return reply
 
 # Public Method
-
 
 def send_message(
     session_id: int,

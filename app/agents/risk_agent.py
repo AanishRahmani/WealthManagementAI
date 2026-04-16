@@ -67,7 +67,7 @@ Risk Score:
 Drivers:
 {drivers}
 Write 500 to 600 words of professional content.
-be rationale in decision making. 
+Be rationale in decision making. 
 Explain why the score matters.
 Mention strongest risk and one positive factor.
 No fluff.

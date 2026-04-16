@@ -299,11 +299,11 @@ def api_call(endpoint: str, method: str = "get", data: Optional[Dict[str, Any]] 
     try:
         url = f"{API_BASE_URL}{endpoint}"
         if method == "get":
-            response = requests.get(url, timeout=10)
+            response = requests.get(url, timeout=90)
         elif method == "post":
-            response = requests.post(url, json=data, timeout=10)
+            response = requests.post(url, json=data, timeout=90)
         elif method == "delete":
-            response = requests.delete(url, timeout=10)
+            response = requests.delete(url, timeout=90)
         else:
             return None
         response.raise_for_status()
