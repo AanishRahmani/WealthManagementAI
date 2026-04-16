@@ -515,6 +515,9 @@ If using your SQLite tools, you have access to the following tables:
 - `chat_sessions` and `chat_messages`
 Do NOT query tables named "analysis" or "reports". Use "analysis_reports".
 
+Vector Database (Second Brain):
+You also have access to ChromaDB MCP tools for semantic search against past documentation, chat logs, and vector memory. Use them to uncover past context!
+
 Session Title:
 {title}
 """
@@ -578,26 +581,53 @@ async def async_generate_reply(session_id: int, user_message: str, client_id: in
     from langchain_mcp_adapters.tools import load_mcp_tools
     from langchain.agents import create_agent
     from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
-
-    # Construct complete absolute path for DB
+    import os
+    import sys
+    
+    # Construct complete absolute path for DBs
     db_abs_path = str(DB_PATH.absolute())
+    chroma_abs_path = str((Path.cwd() / "data" / "chroma").absolute())
+
+    # Build absolute paths for the executables to bypass Windows WinError 2 
+    scripts_dir = Path(sys.executable).parent
+    sqlite_exe_path = str(scripts_dir / "mcp-sqlite.exe") if sys.platform == "win32" else "mcp-sqlite"
+    chroma_exe_path = str(scripts_dir / "chroma-mcp-server.exe") if sys.platform == "win32" else "chroma-mcp-server"
 
     client = MultiServerMCPClient({
         "sqlite": {
             "transport": "stdio",
-            "command": "mcp-sqlite",
+            "command": sqlite_exe_path,
             "args": [db_abs_path],
+        },
+        "chroma": {
+            "transport": "stdio",
+            "command": chroma_exe_path,
+            "args": [],
+            "env": {
+                **os.environ,
+                "CHROMA_CLIENT_TYPE": "persistent",
+                "CHROMA_DATA_DIR": chroma_abs_path,
+                "LOG_LEVEL": "INFO",
+            }
         }
     })
 
     try:
-        async with client.session("sqlite") as session:
-            tools = await load_mcp_tools(session)
-            
-            system_prompt = build_system_prompt(session_id)
-            analysis_context = build_analysis_context(client_id)
-            
-            full_system = system_prompt
+        async with client.session("sqlite") as sqlite_session:
+            async with client.session("chroma") as chroma_session:
+                sqlite_tools = await load_mcp_tools(sqlite_session)
+                try:
+                    chroma_tools = await load_mcp_tools(chroma_session)
+                except Exception as e:
+                    logger.warning(f"Failed to load Chroma tools, continuing with SQLite only: {e}")
+                    chroma_tools = []
+                    
+                tools = sqlite_tools + chroma_tools
+                
+                system_prompt = build_system_prompt(session_id)
+                analysis_context = build_analysis_context(client_id)
+                
+                full_system = system_prompt
             if analysis_context:
                 full_system += f"\n\n{analysis_context}"
 
