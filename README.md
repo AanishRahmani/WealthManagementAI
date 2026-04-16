@@ -62,12 +62,12 @@ This will launch:
 - backend at `http://127.0.0.1:8081`
 - frontend at `http://localhost:8501`
 
-### Option 2: Start backend and frontend seperately only
+### Option 2: Start backend and frontend seperately only (Recommended for better debugging)
 
 ```bash
 python run_api.py
 ```
-
+### first time startup may take time to initialize DB 
 Then visit:
 - `http://127.0.0.1:8081`
 
