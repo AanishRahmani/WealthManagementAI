@@ -8,12 +8,14 @@ from langchain_core.output_parsers import JsonOutputParser
 import logging
 
 from app.core.llm import get_llm
-
-logger = logging.getLogger(__name__)
-
 from app.services.projection_engine import (
     generate_projection,
 )
+
+
+
+logger = logging.getLogger(__name__)
+
 
 
 class RecommendationSummary(BaseModel):
