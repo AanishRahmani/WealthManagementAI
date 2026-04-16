@@ -34,6 +34,7 @@ st.markdown("""
 if 'current_stage' not in st.session_state: st.session_state.current_stage = 1
 if 'client_id' not in st.session_state: st.session_state.client_id = None
 if 'analysis_result' not in st.session_state: st.session_state.analysis_result = None
+if 'analysis_started' not in st.session_state: st.session_state.analysis_started = False
 
 # --- API HELPER ---
 def api_call(endpoint, method="get", data=None, files=None):
@@ -139,108 +140,227 @@ def show_assessment():
         if completion >= 70:
             st.markdown("---")
             st.success("Ready for AI Analysis.")
-            if st.button("Generate Final Dashboard →", type="primary", use_container_width=True):
-                st.session_state.current_stage = 5
+            if st.button("Generate AI Analysis →", type="primary", use_container_width=True):
+                st.session_state.current_stage = 3
+                st.session_state.analysis_started = False
+                st.session_state.analysis_result = None
                 st.rerun()
 
-# --- STAGE 5: INTEGRATED DASHBOARD ---
-# --- STAGE 5: INTEGRATED DASHBOARD ---
-def show_dashboard():
-    st.markdown('<h2 class="stage-header">Executive Wealth Dashboard</h2>', unsafe_allow_html=True)
+# --- STAGE 3: AI ANALYSIS ---
+def show_analysis_stage():
+    st.markdown('<h2 class="stage-header">Stage 3: AI-Powered Analysis</h2>', unsafe_allow_html=True)
     cid = st.session_state.client_id
 
-    # Ensure analysis data is fetched
-    if not st.session_state.analysis_result:
-        with st.status("🤖 Orchestrating AI Agents...", expanded=True) as status:
-            res = api_call(f"/analysis/run/{cid}")
-            if res:
-                st.session_state.analysis_result = res
-                status.update(label="Analysis Successful", state="complete")
-                st.rerun()
-            else:
-                st.error("Failed to generate analysis. Please check backend connection and try again.")
-                if st.button("Retry Analysis"):
-                    st.session_state.analysis_result = None
-                    st.rerun()
-                return
-    else:
-        # Option to refresh analysis
-        if st.button("🔄 Refresh Analysis Data"):
+    if not st.session_state.analysis_started:
+        st.info("Start the three-agent AI analysis pipeline. This will simulate progress and then execute the backend analysis.")
+        if st.button("Start AI Analysis", type="primary", use_container_width=True):
+            st.session_state.analysis_started = True
             st.session_state.analysis_result = None
             st.rerun()
+        return
 
-    res = st.session_state.analysis_result
-    
-    # NEW: Navigation between Overview and Deep Dive
-    view_tab, analysis_tab = st.tabs(["📊 Executive Overview", "🔍 Technical Analysis Deep-Dive"])
+    progress_bar = st.progress(0)
+    status1 = st.empty()
+    status2 = st.empty()
+    status3 = st.empty()
+    stage_message = st.empty()
 
-    with view_tab:
-        # --- TOP ROW: KPI BAR ---
-        m1, m2, m3, m4 = st.columns(4)
-        with m1:
-            st.metric("Portfolio Value", f"${res['recommendations']['projection']['current_value']:,.2f}")
-        with m2:
-            st.metric("Risk Level", res['risk_analysis']['risk_level'], delta=f"Score: {res['risk_analysis']['overall_risk_score']}")
-        with m3:
-            st.metric("Projected Alpha", f"+{res['recommendations']['expected_return_improvement']}%")
-        with m4:
-            st.metric("Compliance Status", "Passed")
+    status1.info("Portfolio Analysis Agent: queued")
+    status2.info("Risk Assessment Agent: waiting")
+    status3.info("Recommendation Agent: waiting")
+    stage_message.info("Preparing agent pipeline...")
+    time.sleep(0.5)
+    progress_bar.progress(10)
 
-        st.markdown("---")
+    status1.success("Portfolio Analysis Agent: running")
+    stage_message.info("Analyzing client documents and portfolio exposure...")
+    time.sleep(1.0)
+    progress_bar.progress(30)
 
-        # --- GROWTH PROJECTIONS ---
-        st.markdown("### 📈 10-Year Growth Modeling")
-        proj = res['recommendations']['projection']
-        fig_proj = go.Figure()
-        fig_proj.add_trace(go.Scatter(x=[0, proj['years']], y=[proj['current_value'], proj['base']], name=f"Base Case ({proj['assumptions']['base']})", line=dict(width=4, color="#1e3a5f")))
-        fig_proj.add_trace(go.Scatter(x=[0, proj['years']], y=[proj['current_value'], proj['high']], name=f"High Case ({proj['assumptions']['high']})", line=dict(dash='dot', color="#38a169")))
-        st.plotly_chart(fig_proj, use_container_width=True)
+    status2.info("Risk Assessment Agent: queued")
+    time.sleep(0.4)
+    progress_bar.progress(40)
 
-        # --- SUMMARIES ---
-        col_sum1, col_sum2 = st.columns(2)
-        with col_sum1:
-            st.markdown("#### 📝 Strategy Overview")
-            st.markdown(f'<div class="summary-box">{res["recommendations"]["summary"]}</div>', unsafe_allow_html=True)
-        with col_sum2:
-            st.markdown("#### ⚠️ Risk Assessment")
-            st.markdown(f'<div class="risk-box">{res["risk_analysis"]["summary"]}</div>', unsafe_allow_html=True)
+    status2.success("Risk Assessment Agent: running")
+    stage_message.info("Assessing concentration, liquidity, and compliance risks...")
+    time.sleep(1.0)
+    progress_bar.progress(55)
 
-    with analysis_tab:
-        st.markdown("### 🔍 Internal Agent Findings")
-        
-        # Breakdown into specific technical segments
-        col_a1, col_a2 = st.columns(2)
-        
-        with col_a1:
-            st.write("**Portfolio Intelligence**")
-            st.write(f"- **Documents Parsed:** {res['portfolio_analysis']['documents_analyzed']}")
-            st.write(f"- **Asset Classes Identified:** {res['portfolio_analysis']['asset_classes_detected']}")
-            st.write(f"- **Diversification Score:** {res['portfolio_analysis']['diversification_score']}/100")
-            
-            st.markdown("#### Current Positions")
-            df_h = pd.DataFrame(res['portfolio_analysis']['holdings'])
-            st.dataframe(df_h, use_container_width=True, hide_index=True)
+    status3.info("Recommendation Agent: queued")
+    time.sleep(0.4)
+    progress_bar.progress(65)
 
-        with col_a2:
-            st.write("**Risk Vectors**")
-            st.write(f"- **Risk Confidence:** {res['risk_analysis']['risk_confidence'] * 100}%")
-            st.write(f"- **Calculated Metrics:** {res['risk_analysis']['risk_metrics_calculated']}")
-            
-            st.markdown("#### Priority Recommended Actions")
-            for act in res['recommendations']['actions']:
-                with st.expander(f"Priority {act['priority']}: {act['action']}"):
-                    st.write(f"**Reasoning:** {act['reason']}")
-            
-            st.markdown("#### Sector Exposure Breakdown")
-            sectors = res['portfolio_analysis']['sector_exposure']
-            fig_bar = px.bar(x=list(sectors.keys()), y=list(sectors.values()), color=list(sectors.values()), color_continuous_scale='Blues')
-            st.plotly_chart(fig_bar, use_container_width=True)
+    status3.success("Recommendation Agent: running")
+    stage_message.info("Synthesizing recommendations, projections, and scenario outputs...")
+    time.sleep(1.0)
+    progress_bar.progress(80)
 
-    # Re-run button at the bottom for major refreshes
+    stage_message.info("Finalizing results...")
+    time.sleep(0.8)
+    progress_bar.progress(90)
+
+    analysis_result = api_call(f"/analysis/run/{cid}")
+    if analysis_result:
+        st.session_state.analysis_result = analysis_result
+        st.session_state.analysis_started = False
+        st.session_state.current_stage = 4
+        st.rerun()
+    else:
+        stage_message.error("Analysis failed. Please retry.")
+        st.session_state.analysis_started = False
+        if st.button("Retry Analysis", use_container_width=True):
+            st.rerun()
+
+
+def show_recommendation_scoring():
+    st.markdown('<h2 class="stage-header">Stage 4: Recommendation Scoring & Decision</h2>', unsafe_allow_html=True)
+    cid = st.session_state.client_id
+
+    report = api_call(f"/dashboard/client/{cid}")
+    if not report:
+        st.error("Failed to load scoring data.")
+        return
+
+    feasibility_label = report.get("feasibility_label", "N/A")
+    impact_label = report.get("impact_label", "N/A")
+    feasibility_color = "#16a34a" if feasibility_label == "Green" else "#f59e0b" if feasibility_label == "Amber" else "#ef4444"
+    impact_color = "#16a34a" if impact_label == "Green" else "#f59e0b" if impact_label == "Amber" else "#ef4444"
+
+    col1, col2 = st.columns(2)
+    with col1:
+        st.markdown("#### Feasibility Score")
+        st.markdown(f"<div style='font-size:1.8rem;font-weight:700'>{report.get('feasibility_score', 0):.0f}</div>")
+        st.markdown(build_badge(feasibility_label, feasibility_color), unsafe_allow_html=True)
+        st.write("Implementation complexity, cost, and liquidity readiness.")
+    with col2:
+        st.markdown("#### Impact Score")
+        st.markdown(f"<div style='font-size:1.8rem;font-weight:700'>{report.get('impact_score', 0):.0f}</div>")
+        st.markdown(build_badge(impact_label, impact_color), unsafe_allow_html=True)
+        st.write("Expected portfolio improvement and goal alignment.")
+
     st.markdown("---")
-    if st.button("🔄 Clear State & Re-run Full Pipeline"):
-        st.session_state.analysis_result = None
-        st.session_state.current_stage = 1
+    stats = st.columns(4)
+    stats[0].metric("Projected Annual Return", f"+{report.get('projected_annual_return', 0):.2f}%")
+    stats[1].metric("3Y Portfolio Value", f"${report.get('projected_value_3y', 0):,.2f}")
+    stats[2].metric("Implementation Cost", f"${report.get('implementation_cost', 0):,.0f}")
+    stats[3].metric("Tax Implications", f"${report.get('tax_implications', 0):,.2f}")
+
+    st.markdown("---")
+    st.markdown("### Agent Findings")
+    findings = report.get("agent_findings", {})
+
+    with st.expander("Portfolio Analysis Findings"):
+        portfolio_findings = findings.get("portfolio", {})
+        st.write(f"- Holdings identified: {portfolio_findings.get('holdings_identified', 0)}")
+        st.write(f"- Asset classes detected: {portfolio_findings.get('asset_classes_detected', 0)}")
+        st.write(f"- Diversification score: {portfolio_findings.get('diversification_score', 0)}/100")
+
+    with st.expander("Risk Assessment Findings"):
+        risk_findings = findings.get("risk", {})
+        st.write(f"- Risk score: {risk_findings.get('overall_risk_score', 0)}")
+        st.write(f"- Issues detected: {len(risk_findings.get('issues', []))}")
+        st.write(f"- Confidence: {risk_findings.get('risk_confidence', 0) * 100:.0f}%")
+
+    with st.expander("Recommendation Summary"):
+        recommendations = findings.get("recommendations", {})
+        st.write(f"- Expected return improvement: {recommendations.get('expected_return_improvement', 0)}%")
+        st.write(f"- Tax efficiency gain: {recommendations.get('tax_efficiency_gain', 0)}%")
+        st.write(f"- Recommendation confidence: {recommendations.get('recommendation_confidence', 0) * 100:.0f}%")
+        st.write(f"- Recommendations generated: {recommendations.get('recommendations_generated', 0)}")
+
+    st.markdown("---")
+    if st.button("Continue to Portfolio Dashboard →", type="primary", use_container_width=True):
+        st.session_state.current_stage = 5
+        st.rerun()
+
+
+def show_portfolio_dashboard():
+    st.markdown('<h2 class="stage-header">Stage 5: Portfolio Dashboard</h2>', unsafe_allow_html=True)
+    cid = st.session_state.client_id
+
+    client_report = api_call(f"/dashboard/client/{cid}")
+    all_reports = api_call("/dashboard/all") or []
+
+    overview_cols = st.columns(3)
+    overview_cols[0].metric("Current Decision", client_report.get("decision", "N/A"))
+    overview_cols[1].metric("Feasibility", f"{client_report.get('feasibility_score', 0):.0f}")
+    overview_cols[2].metric("Impact", f"{client_report.get('impact_score', 0):.0f}")
+
+    st.markdown("---")
+    export_col1, export_col2 = st.columns([1, 1])
+    if client_report:
+        client_json = json.dumps(client_report, indent=2).encode("utf-8")
+        export_col1.download_button(
+            "Export Current Client JSON",
+            data=client_json,
+            file_name=f"client_{cid}_dashboard.json",
+            mime="application/json",
+        )
+
+    if all_reports:
+        df = pd.DataFrame(all_reports)
+        csv_bytes = df.to_csv(index=False).encode("utf-8")
+        export_col2.download_button(
+            "Export Portfolio Table CSV",
+            data=csv_bytes,
+            file_name="portfolio_recommendations.csv",
+            mime="text/csv",
+        )
+
+    st.markdown("---")
+    st.markdown("### Client Recommendations Table")
+    if all_reports:
+        df_display = pd.DataFrame(all_reports).rename(columns={
+            'projected_annual_return': 'Projected Return',
+            'implementation_cost': 'Cost',
+            'risk_score': 'Risk Score',
+        })
+        st.dataframe(df_display, use_container_width=True)
+
+        for row in all_reports:
+            with st.expander(f"Client {row['client_id']} — {row['decision']} | F {row['feasibility_score']:.0f} | I {row['impact_score']:.0f}"):
+                st.write(row)
+    else:
+        st.info("No client analysis reports found yet.")
+
+    st.markdown("---")
+    st.markdown("### Feasibility-Impact Matrix")
+    scatter_df = pd.DataFrame(all_reports)
+    if not scatter_df.empty:
+        fig = go.Figure()
+        fig.add_trace(
+            go.Scatter(
+                x=scatter_df['feasibility_score'],
+                y=scatter_df['impact_score'],
+                mode='markers',
+                marker=dict(
+                    size=14,
+                    color='#4c6ef5',
+                    line=dict(color='white', width=1),
+                    opacity=0.9,
+                ),
+                text=scatter_df['label'],
+                hovertemplate='%{text}<br>Feasibility: %{x}<br>Impact: %{y}<extra></extra>',
+            )
+        )
+        fig.update_layout(
+            template='plotly',
+            plot_bgcolor='rgba(0,0,0,0)',
+            paper_bgcolor='rgba(0,0,0,0)',
+            xaxis=dict(title='Feasibility Score', range=[0, 100], gridcolor='rgba(0,0,0,0.08)'),
+            yaxis=dict(title='Impact Score', range=[0, 100], gridcolor='rgba(0,0,0,0.08)'),
+            shapes=[
+                dict(type='line', x0=50, x1=50, y0=0, y1=100, line=dict(color='#94a3b8', width=1, dash='dash')),
+                dict(type='line', x0=0, x1=100, y0=50, y1=50, line=dict(color='#94a3b8', width=1, dash='dash')),
+            ],
+        )
+        st.plotly_chart(fig, use_container_width=True)
+    else:
+        st.info("No scoring data available to build the matrix yet.")
+
+    st.markdown("---")
+    if st.button("Continue to Chat Review", use_container_width=True):
+        st.session_state.current_stage = 6
         st.rerun()
 
 
@@ -344,13 +464,16 @@ def show_chat_interface():
 def main():
     st.markdown('<h1 class="main-header">Wealth Advisor AI</h1>', unsafe_allow_html=True)
     
-    # Added Stage 6 to the router
     if st.session_state.current_stage == 1:
         show_client_profile()
     elif st.session_state.current_stage == 2:
         show_assessment()
+    elif st.session_state.current_stage == 3:
+        show_analysis_stage()
+    elif st.session_state.current_stage == 4:
+        show_recommendation_scoring()
     elif st.session_state.current_stage == 5:
-        show_dashboard()
+        show_portfolio_dashboard()
     elif st.session_state.current_stage == 6:
         show_chat_interface()
 
