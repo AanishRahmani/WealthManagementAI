@@ -568,9 +568,10 @@ def generate_reply(
     try:
         llm = get_llm()
         response = llm.invoke(prompt)
-
+        print(llm)
+        print(response)
         reply = extract_text_content(response)
-
+        print(reply)
         if not reply:
             reply = "I need a little more detail to give useful guidance."
 

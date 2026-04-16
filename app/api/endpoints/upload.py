@@ -27,15 +27,6 @@ ALLOWED_EXTENSIONS = {
     ".xls",
 }
 
-ALLOWED_CONTENT_TYPES = {
-    "application/pdf",
-    "text/plain",
-    "text/csv",
-    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    "application/vnd.ms-excel",
-}
-
 
 def classify_document(filename: str) -> str:
     name = filename.lower()
@@ -102,13 +93,6 @@ def validate_upload(
                 detail="Allowed files: PDF, TXT, DOCX, CSV, XLSX, XLS.",
             )
 
-        content_type = file.content_type or ""
-
-        if content_type not in ALLOWED_CONTENT_TYPES:
-            raise HTTPException(
-                status_code=400,
-                detail="Unsupported content type.",
-            )
 
 
 def process_document(
@@ -194,6 +178,13 @@ async def upload_file(
     client_notes: str | None = Form(default=None),
     file: UploadFile | None = File(default=None),
 ):
+    print(f"DEBUG: Upload request received")
+    print(f"DEBUG: client_id = {client_id}")
+    print(f"DEBUG: client_notes = {client_notes}")
+    print(f"DEBUG: file = {file}")
+    print(f"DEBUG: file.filename = {file.filename if file else None}")
+    print(f"DEBUG: file.content_type = {file.content_type if file else None}")
+    
     validate_upload(file, client_notes)
 
     if file is None:
@@ -255,7 +246,22 @@ async def upload_file(
         )
 
     filename: str = uploaded_file.filename
-    content_type: str = uploaded_file.content_type or "application/octet-stream"
+    
+    # Get content type from file or detect from extension
+    content_type = uploaded_file.content_type
+    if not content_type:
+        # Fallback: detect content type from file extension
+        ext = Path(filename).suffix.lower()
+        content_type_map = {
+            '.pdf': 'application/pdf',
+            '.txt': 'text/plain', 
+            '.csv': 'text/csv',
+            '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            '.xls': 'application/vnd.ms-excel'
+        }
+        content_type = content_type_map.get(ext, 'application/octet-stream')
+        print(f"DEBUG: Content-type was None, detected from extension: {content_type}")
 
     file_path = UPLOAD_DIR / filename
     document_type = classify_document(filename)
