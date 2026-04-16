@@ -4,6 +4,9 @@ from typing import Any
 
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel, Field
+from pathlib import Path
+
+import logging
 
 from app.services.chat_service import (
     create_session,
@@ -13,6 +16,14 @@ from app.services.chat_service import (
     get_sessions,
     send_message,
 )
+
+
+logger = logging.getLogger(__name__)
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] [%(name)s] %(message)s",
+)
+
 
 
 router = APIRouter(
@@ -176,15 +187,46 @@ def list_chat_messages(
         ) from exc
 
 
-@router.post(
-    "/send",
-)
-def send_chat_message(
-    payload: SendMessageRequest,
-) -> dict[str, Any]:
+# @router.post(
+#     "/send",
+# )
+# def send_chat_message(
+#     payload: SendMessageRequest,
+# ) -> dict[str, Any]:
+#     """
+#     Send message to persistent chat.
+#     """
+
+#     try:
+#         result = send_message(
+#             session_id=payload.session_id,
+#             message=payload.message,
+#         )
+
+#         return result
+
+#     except ValueError as exc:
+#         raise HTTPException(
+#             status_code=status.HTTP_400_BAD_REQUEST,
+#             detail=str(exc),
+#         ) from exc
+
+#     except Exception as exc:
+#         raise HTTPException(
+#             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+#             detail=f"Failed to send message: {exc}",
+#         ) from exc
+
+@router.post("/send")
+def send_chat_message(payload: SendMessageRequest) -> dict[str, Any]:
     """
     Send message to persistent chat.
     """
+    logger.info(
+        "Incoming request: session_id=%s, message_length=%d",
+        payload.session_id,
+        len(payload.message) if payload.message else 0,
+    )
 
     try:
         result = send_message(
@@ -192,15 +234,29 @@ def send_chat_message(
             message=payload.message,
         )
 
+        logger.info(
+            "Request successful: session_id=%s",
+            payload.session_id,
+        )
+
         return result
 
     except ValueError as exc:
+        logger.warning(
+            "Validation error: session_id=%s, error=%s",
+            payload.session_id,
+            str(exc),
+        )
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(exc),
         ) from exc
 
     except Exception as exc:
+        logger.exception(  # automatically includes stack trace
+            "Unexpected error while sending message: session_id=%s",
+            payload.session_id,
+        )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to send message: {exc}",

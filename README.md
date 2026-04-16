@@ -111,6 +111,13 @@ WealthAdvisorAI/
 └── README.md
 ```
 
+## Model Context Protocol (MCP) Integrations
+
+The local chat agent dynamically fetches data via real-time tool loops using **[Model Context Protocol (MCP)](https://modelcontextprotocol.io/)**. The `MultiServerMCPClient` manages two independent dual streams seamlessly:
+
+1. **SQLite Database Tooling (`mcp-sqlite`)**: Enables the agent to securely query schemas, index rows, and pull specific, raw backend `analysis_reports` directly.
+2. **Second-Brain Memory (`chroma-mcp-server`)**: Empowers the AI to conduct sophisticated semantic text searches over the persistent vector storage directory (`data/chroma`) retaining long-term session histories and context.
+
 ## Usage Guide
 
 ### Stage 1: Client Profile Gathering
@@ -169,6 +176,14 @@ WealthAdvisorAI/
 - `run_app.py` is the easiest way to start both services together.
 - If you want more control, run `run_api.py` and `streamlit run frontend/app.py` separately.
 - Keep `.env` in the project root before starting the app.
+
+## Testing / Utilities
+
+This repository includes a few standalone scripts in the root directory for rapid local testing and debugging without needing to launch the entire UI stack:
+
+- **`test_chat.py`**: A quick utility designed to test the FastAPI chat endpoints and ensure that localized prompts are successfully streaming or receiving payloads from the running server.
+- **`test_sqlite.py`**: An identical testing script meant purely for isolating and establishing direct schema mappings with the SQLite database via `mcp-sqlite`. Use this to ensure your physical database file exists and is readable by the executable driver.
+- **`test_chroma.py`**: A dedicated diagnostic script for validating the MCP architecture block. It safely spins up the `chroma-mcp-server` subprocess asynchronously, tests the dynamically constructed absolute paths via standard I/O streams, and prints out all the vector tooling dynamically exposed to Langchain (e.g. `chroma_create_collection`). Use this to ensure your Windows paths or virtual environment executable mappings aren't broken before booting the main app!
 
 ## Contributing
 

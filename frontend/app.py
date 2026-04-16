@@ -17,21 +17,43 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# --- OMNI-THEME AWARENESS ---
+try:
+    theme_type = st.context.theme.type
+except Exception:
+    theme_type = "light"
+
+# Inject tailored palettes instead of system defaults for higher quality UI
+if theme_type == "dark":
+    primary_text = "#e2e8f0"  # Brighter text for dark backgrounds
+    stage_text = "#93c5fd"    # Distinct sub-headers
+    card_bg = "#0f172a"       # Deep slate for cards
+    card_border = "#334155"
+    ai_bubble = "#1e293b"
+    user_bubble = "rgba(99, 102, 241, 0.25)" # Stronger indigo tint
+else:
+    primary_text = "#1e3a5f"  # Original dark blue
+    stage_text = "#2c5282"
+    card_bg = "#f8fafc"
+    card_border = "#e2e8f0"
+    ai_bubble = "#f1f5f9"
+    user_bubble = "rgba(79, 70, 229, 0.12)"
+
 # --- CUSTOM UI STYLING ---
-st.markdown("""
+st.markdown(f"""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
-    html, body, [class*="css"] {
+    html, body, [class*="css"] {{
         font-family: 'Inter', sans-serif;
-    }
-    .main-header { font-size: 3rem; font-weight: 800; color: #1e3a5f; text-align: center; margin-bottom: 1rem; }
-    .stage-header { font-size: 1.8rem; font-weight: 600; color: #2c5282; margin-bottom: 1.5rem; border-bottom: 2px solid #e2e8f0; padding-bottom: 0.5rem; }
-    .agent-card { border: 1px solid #e2e8f0; border-radius: 8px; padding: 1.5rem; margin-bottom: 1rem; background: #f8fafc; }
-    .score-green { color: #10b981; font-weight: bold; font-size: 1.5rem; }
-    .score-amber { color: #f59e0b; font-weight: bold; font-size: 1.5rem; }
-    .score-red { color: #ef4444; font-weight: bold; font-size: 1.5rem; }
-    .chat-bubble-ai { background: #f1f5f9; padding: 1rem; border-radius: 12px; border-left: 4px solid #3b82f6; margin-bottom: 1rem; }
-    .chat-bubble-user { background: #e0e7ff; padding: 1rem; border-radius: 12px; border-right: 4px solid #4f46e5; margin-bottom: 1rem; text-align: right; }
+    }}
+    .main-header {{ font-size: 3rem; font-weight: 800; color: {primary_text}; text-align: center; margin-bottom: 1rem; }}
+    .stage-header {{ font-size: 1.8rem; font-weight: 600; color: {stage_text}; margin-bottom: 1.5rem; border-bottom: 2px solid {card_border}; padding-bottom: 0.5rem; }}
+    .agent-card {{ border: 1px solid {card_border}; border-radius: 8px; padding: 1.5rem; margin-bottom: 1rem; background: {card_bg}; color: {primary_text}; }}
+    .score-green {{ color: #10b981; font-weight: bold; font-size: 1.5rem; }}
+    .score-amber {{ color: #f59e0b; font-weight: bold; font-size: 1.5rem; }}
+    .score-red {{ color: #ef4444; font-weight: bold; font-size: 1.5rem; }}
+    .chat-bubble-ai {{ background: {ai_bubble}; color: {primary_text}; padding: 1rem; border-radius: 12px; border-left: 4px solid #3b82f6; margin-bottom: 1rem; }}
+    .chat-bubble-user {{ background: {user_bubble}; color: {primary_text}; padding: 1rem; border-radius: 12px; border-right: 4px solid #4f46e5; margin-bottom: 1rem; text-align: right; }}
 </style>
 """, unsafe_allow_html=True)
 
@@ -106,15 +128,16 @@ def get_mock_analysis_data():
 def api_call(endpoint, method="get", data=None, files=None):
     try:
         url = f"{API_BASE_URL}{endpoint}"
-        if method == "get":
-            response = requests.get(url)
-        elif method == "post":
-            if files or endpoint in ["/upload", "/clients"]:
-                response = requests.post(url, data=data, files=files)
-            else:
-                response = requests.post(url, json=data)
-        elif method == "delete":
-            response = requests.delete(url)
+        with st.spinner("⏳ Computing..."):
+            if method == "get":
+                response = requests.get(url)
+            elif method == "post":
+                if files or endpoint in ["/upload", "/clients"]:
+                    response = requests.post(url, data=data, files=files)
+                else:
+                    response = requests.post(url, json=data)
+            elif method == "delete":
+                response = requests.delete(url)
             
         if response.status_code == 422:
             st.error(f"Validation Error: {response.text}")
@@ -148,7 +171,7 @@ with st.sidebar:
 # --- STAGE 1: PROFILE GATHERING ---
 def show_client_profile():
     st.markdown('<h2 class="stage-header">Stage 1: Client Profile Gathering</h2>', unsafe_allow_html=True)
-    st.info("Upload client portfolio and detail financial goals. Requirement: Provide either Notes OR an Upload to proceed.")
+    st.info("Upload client portfolio and detail financial goals. Requirement: Provide either Notes OR an Upload to proceed. for better analysis provide both especially a file containing current portfolio holdings.")
     
     col1, col2 = st.columns([1, 1])
     with col1:

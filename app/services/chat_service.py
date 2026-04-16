@@ -583,6 +583,7 @@ async def async_generate_reply(session_id: int, user_message: str, client_id: in
     from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
     import os
     import sys
+    from pathlib import Path
     
     # Construct complete absolute path for DBs
     db_abs_path = str(DB_PATH.absolute())
