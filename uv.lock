@@ -14,6 +14,15 @@ resolution-markers = [
 ]
 
 [[package]]
+name = "aiosqlite"
+version = "0.22.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/4e/8a/64761f4005f17809769d23e518d915db74e6310474e733e3593cfc854ef1/aiosqlite-0.22.1.tar.gz", hash = "sha256:043e0bd78d32888c0a9ca90fc788b38796843360c855a7262a532813133a0650", size = 14821, upload-time = "2025-12-23T19:25:43.997Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/00/b7/e3bf5133d697a08128598c8d0abc5e16377b51465a33756de24fa7dee953/aiosqlite-0.22.1-py3-none-any.whl", hash = "sha256:21c002eb13823fad740196c5a2e9d8e62f6243bd9e7e4a1f87fb5e44ecb4fceb", size = 17405, upload-time = "2025-12-23T19:25:42.139Z" },
+]
+
+[[package]]
 name = "altair"
 version = "6.0.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1111,6 +1120,22 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/8b/eb/c0cfc62075dc6e1ec1c64d352ae09ac051d9334311ed226f1f425312848a/mcp-1.27.0.tar.gz", hash = "sha256:d3dc35a7eec0d458c1da4976a48f982097ddaab87e278c5511d5a4a56e852b83", size = 607509, upload-time = "2026-04-02T14:48:08.88Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/9c/46/f6b4ad632c67ef35209a66127e4bddc95759649dd595f71f13fba11bdf9a/mcp-1.27.0-py3-none-any.whl", hash = "sha256:5ce1fa81614958e267b21fb2aa34e0aea8e2c6ede60d52aba45fd47246b4d741", size = 215967, upload-time = "2026-04-02T14:48:07.24Z" },
+]
+
+[[package]]
+name = "mcp-sqlite"
+version = "0.3.2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "aiosqlite" },
+    { name = "anyio" },
+    { name = "mcp" },
+    { name = "pydantic" },
+    { name = "pyyaml" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/85/b5/3c4aeb5d6d6896f8344909b7aac2b23d7a38934016e8f452fcc6220f063d/mcp_sqlite-0.3.2.tar.gz", hash = "sha256:e9af2901cf869df6138aa6020c306c29b62ef1ef172f7086e3162290cb823533", size = 12475, upload-time = "2025-10-25T05:22:31.668Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/0b/82/ea50095ac4a60c345aac026be294124db260512a75d1b773a004383f9fdc/mcp_sqlite-0.3.2-py3-none-any.whl", hash = "sha256:993bbf9b42ae9834fa16cac7656ec0f371b444b944350b754ad5e44648b06683", size = 11081, upload-time = "2025-10-25T05:22:30.561Z" },
 ]
 
 [[package]]
@@ -2679,6 +2704,7 @@ dependencies = [
     { name = "langchain-core" },
     { name = "langchain-huggingface" },
     { name = "langchain-mcp-adapters" },
+    { name = "mcp-sqlite" },
     { name = "openpyxl" },
     { name = "pandas" },
     { name = "plotly" },
@@ -2702,6 +2728,7 @@ requires-dist = [
     { name = "langchain-core", specifier = ">=1.2.28" },
     { name = "langchain-huggingface", specifier = ">=1.2.1" },
     { name = "langchain-mcp-adapters", specifier = ">=0.2.2" },
+    { name = "mcp-sqlite", specifier = ">=0.3.2" },
     { name = "openpyxl", specifier = ">=3.1.5" },
     { name = "pandas", specifier = ">=3.0.2" },
     { name = "plotly", specifier = ">=6.7.0" },
