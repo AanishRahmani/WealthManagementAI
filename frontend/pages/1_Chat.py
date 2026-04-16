@@ -94,9 +94,9 @@ st.markdown(f"""
     }}
 
     /* Sidebar Styling */
-    [data-testid="stSidebar"] {
-        background-color: #f8fafc;
-    }
+    [data-testid="stSidebar"] {{
+        background-color: var(--secondary-background-color);
+    }}
 </style>
 """, unsafe_allow_html=True)
 
