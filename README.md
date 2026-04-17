@@ -94,6 +94,7 @@ Then visit:
 
 ```
 WealthAdvisorAI/
+├──.env                 # Environment variables
 ├── app/                # FastAPI backend
 │   ├── api/endpoints/  # REST API endpoints
 │   ├── agents/         # Multi-agent logic
