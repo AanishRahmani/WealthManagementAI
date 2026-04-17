@@ -307,15 +307,43 @@ def show_analysis_progress():
             st.session_state.current_stage = 4
             st.rerun()
 
-# --- STAGE 4: RECOMMENDATION SCORING & DECISION ---
-def show_scoring():
-    st.markdown('<h2 class="stage-header">Stage 4: Recommendation Scoring & Decisions</h2>', unsafe_allow_html=True)
-    res = st.session_state.analysis_result
+# --- HELPER: RENDER ANALYSIS DETAILS ---
+def render_analysis_details(res):
+    st.write("### 👤 Client Profile & Portfolio Setup")
+    col_prof1, col_prof2, col_prof3, col_prof4 = st.columns(4)
+    profile = res.get('profile', {})
+    col_prof1.metric("Investor Type", profile.get("investor_type", "N/A"))
+    col_prof2.metric("Timeline", profile.get("timeline", "N/A"))
+    col_prof3.metric("Liquidity Need", profile.get("liquidity_need", "N/A"))
+    col_prof4.metric("Tax Sensitive", "Yes" if profile.get("tax_sensitive") else "No")
     
-    # Calculate Impact and Feasibility from payload
-    # Standardizing mock math to generate scores.
-    impact = min(100, int(res['recommendations']['expected_return_improvement'] * 30)) if res.get('recommendations') else 85
-    feas = max(0, 100 - int(res['recommendations'].get('implementation_cost', 8500) / 200)) if res.get('recommendations') else 78
+    col_g1, col_g2 = st.columns(2)
+    port = res.get('portfolio_analysis', {})
+    allocation = port.get('allocation', {})
+    with col_g1:
+        if allocation:
+            fig_alloc = px.pie(values=list(allocation.values()), names=list(allocation.keys()), 
+                               title="Current Asset Allocation", hole=0.4, 
+                               color_discrete_sequence=px.colors.sequential.Teal)
+            st.plotly_chart(fig_alloc, use_container_width=True)
+        else:
+            st.info("No explicit allocation data available to chart.")
+            
+    with col_g2:
+        proj = res.get('recommendations', {}).get('projection')
+        if proj:
+            x_vals = ["Current", f"Year {proj.get('years', 3)} (Low)", f"Year {proj.get('years', 3)} (Base)", f"Year {proj.get('years', 3)} (High)"]
+            y_vals = [proj.get('current_value', 0), proj.get('low', 0), proj.get('base', 0), proj.get('high', 0)]
+            fig_proj = px.bar(x=x_vals, y=y_vals, text=y_vals, title=f"{proj.get('years', 3)}-Year Growth Projection", 
+                              labels={'x': 'Scenario', 'y': 'Portfolio Value ($)'}, color=x_vals,
+                              color_discrete_sequence=['#94a3b8', '#ef4444', '#3b82f6', '#10b981'])
+            fig_proj.update_traces(texttemplate='$%{text:,.0f}', textposition='outside')
+            fig_proj.update_layout(showlegend=False)
+            st.plotly_chart(fig_proj, use_container_width=True)
+
+    st.write("### 🧮 AI Strategy Scoring")
+    impact = min(100, int(res.get('recommendations', {}).get('expected_return_improvement', 2.5) * 30)) if res.get('recommendations') else 85
+    feas = max(0, 100 - int(res.get('recommendations', {}).get('implementation_cost', 0) / 200)) if res.get('recommendations') else 78
     
     def score_color(s): return "score-green" if s>=75 else "score-amber" if s>=50 else "score-red"
 
@@ -328,22 +356,39 @@ def show_scoring():
         st.caption("Expected goal alignment and portfolio improvement.")
         
     st.markdown("---")
-    f1, f2, f3 = st.columns(3)
-    f1.metric("Projected 3yr Value", f"${res['recommendations']['projection']['base']:,.2f}")
-    f2.metric("Implementation Cost", f"${res['recommendations']['implementation_cost']:,.2f}")
-    f3.metric("Projected Alpha (Return)", f"+{res['recommendations']['expected_return_improvement']}%")
+    f1, f2, f3, f4 = st.columns(4)
+    rec = res.get('recommendations', {})
+    risk = res.get('risk_analysis', {})
+    
+    f1.metric("Projected Value (Base)", f"${rec.get('projection', {}).get('base', 0):,.2f}")
+    f2.metric("Implementation Cost", f"${rec.get('implementation_cost', 0):,.2f}")
+    f3.metric("Projected Alpha (Return)", f"+{rec.get('expected_return_improvement', 0)}%")
+    f4.metric("Risk Score", f"{risk.get('overall_risk_score', 'N/A')}/100", delta=risk.get('risk_level', 'N/A'), delta_color="inverse")
     
     st.write("### 🔍 AI Agent Findings & Risks")
-    
-    st.info(f"**Recommendation Summary:** {res['recommendations'].get('summary', 'No summary provided')}")
-    st.warning(f"**Risk Summary:** {res['risk_analysis'].get('summary', 'No summary provided')}")
+    st.info(f"**Recommendation Summary:** {rec.get('summary', 'No summary provided')}")
+    st.warning(f"**Risk Summary:** {risk.get('summary', 'No summary provided')}")
     
     with st.expander("Identified Risks (Risk Agent)", expanded=True):
-        for issue in res['risk_analysis']['issues']:
-            st.markdown(f"- 🔴 {issue}")
+        if 'drivers' in risk:
+            st.write("**Key Drivers:**")
+            for d in risk['drivers']: st.markdown(f"- 🔸 {d}")
+        if 'issues' in risk:
+            st.write("**Identified Issues:**")
+            for issue in risk['issues']: st.markdown(f"- 🔴 {issue}")
+            
     with st.expander("Recommendations (Rec Agent)", expanded=True):
-        for act in res['recommendations']['actions']:
-            st.markdown(f"- ✅ **{act['action']}**: {act['reason']}")
+        if 'actions' in rec:
+            for act in rec['actions']:
+                st.markdown(f"- ✅ **{act.get('action', 'Action')}**: {act.get('reason', '')}")
+
+
+# --- STAGE 4: RECOMMENDATION SCORING & DECISION ---
+def show_scoring():
+    st.markdown('<h2 class="stage-header">Stage 4: Recommendation Scoring & Decisions</h2>', unsafe_allow_html=True)
+    res = st.session_state.analysis_result
+    
+    render_analysis_details(res)
             
     st.warning("Please review the strategy above. Selecting 'Implement' commits this portfolio to the active firm dashboard.")
     
@@ -355,6 +400,7 @@ def show_scoring():
             time.sleep(1)
             st.session_state.current_stage = 5
             st.rerun()
+
 
 # --- STAGE 5: PORTFOLIO DASHBOARD ---
 def show_dashboard():
@@ -423,6 +469,23 @@ def show_dashboard():
             mime='text/csv',
             type="primary"
         )
+        
+    st.markdown("---")
+    st.markdown('<h3 class="stage-header">🔍 Deep Dive: Review Client Analysis</h3>', unsafe_allow_html=True)
+    st.write("Select a client below to review all generated metrics locally.")
+    
+    valid_clients = [c for c in clients if c.get("analysis")]
+    if valid_clients:
+        client_options = {f"{c['full_name']} (ID: {c['client_id']})": c for c in valid_clients}
+        # Add a default option so it doesn't auto-render the first person randomly
+        selected_client = st.selectbox("Select past client analysis:", ["-- Select a Client --"] + list(client_options.keys()))
+        if selected_client != "-- Select a Client --":
+            c = client_options[selected_client]
+            st.markdown(f"<div style='border: 1px solid #e2e8f0; border-radius: 8px; padding: 2rem; background: #f8fafc; margin-top: 1rem; color: #1e3a5f;'>", unsafe_allow_html=True)
+            st.markdown(f"## 📊 Historical Analysis Snapshot: {c['full_name']}")
+            render_analysis_details(c['analysis'])
+            st.markdown("</div>", unsafe_allow_html=True)
+
 
 
 def main():
