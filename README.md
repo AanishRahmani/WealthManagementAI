@@ -197,7 +197,7 @@ This repository includes a few standalone scripts in the root directory for rapi
 
 ## Example Portfolio CSV
 
-You can find an example portfolio CSV in `data/uploads/portfolio.csv` or use the following data to test the platform:
+You can create a portfolio CSV `portfolio.csv` to test the flow:
 
 ```csv
 Ticker,Security_Name,Asset_Class,Sector,Quantity,Price,Market_Value,Weight_Percent,Country,Currency
