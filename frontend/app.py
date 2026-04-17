@@ -471,7 +471,7 @@ def show_dashboard():
         )
         
     st.markdown("---")
-    st.markdown('<h3 class="stage-header">🔍 Deep Dive: Review Client Analysis</h3>', unsafe_allow_html=True)
+    st.markdown('<h3 class="stage-header">🔍 Review Client Analysis</h3>', unsafe_allow_html=True)
     st.write("Select a client below to review all generated metrics locally.")
     
     valid_clients = [c for c in clients if c.get("analysis")]

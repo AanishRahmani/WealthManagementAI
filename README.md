@@ -67,9 +67,10 @@ This will launch:
 ```bash
 python run_api.py
 ```
-### first time startup may take time to initialize DB 
+## First time startup may take time to initialize DB 
 Then visit:
-- `http://127.0.0.1:8081`
+- `http://127.0.0.1:8081/docs`
+- to see the endpoints swagger UI
 
 In a second terminal:
 
@@ -100,6 +101,8 @@ WealthAdvisorAI/
 │   ├── schemas/        # Pydantic models
 │   └── services/       # Business logic
 ├── frontend/           # Streamlit frontend
+│   ├── pages/
+│   │   └── 1_Chat.py   # The chat interface
 │   └── app.py          # Main frontend app
 ├── data/               # Local data stores
 │   ├── db/
@@ -150,25 +153,33 @@ The local chat agent dynamically fetches data via real-time tool loops using **[
 ## API Endpoints
 
 ### Upload
-- `POST /v1/upload` — Upload files and notes
-- `POST /v1/clients` — Create a new client
+- `POST /v1/upload` — Upload portfolio documents and related files
+
+### Client
+- `POST /v1/clients/` — Create a new client entry
+- `GET /v1/clients/dashboard` — Return array of client objects enriched with analysis payloads
 
 ### Assessment
-- `GET /v1/assessment/next/{client_id}`
-- `POST /v1/assessment/answer`
-- `GET /v1/assessment/status/{client_id}`
-- `GET /v1/assessment/profile/{client_id}`
+- `GET /v1/assessment/next/{client_id}` — Fetch the next relevant assessment question
+- `POST /v1/assessment/answer` — Submit an answer
+- `GET /v1/assessment/status/{client_id}` — Get percentage coverage of profile assessment
+- `GET /v1/assessment/profile/{client_id}` — Return complete assessment history log
 
 ### Analysis
-- `GET /v1/analysis/run/{client_id}`
+- `GET /v1/analysis/run/{client_id}` — Orchestrates multiple AI agents to process risk, portfolio, and recommendations
+- `POST /v1/analysis/save/{client_id}` — Allows frontend to explicitly save/overwrite an analysis state statically
 
 ### Chat
-- `POST /v1/chat/session`
-- `GET /v1/chat/sessions/{client_id}`
-- `GET /v1/chat/sessions/{session_id}`
-- `DELETE /v1/chat/sessions/{session_id}`
-- `POST /v1/chat/send`
-- `GET /v1/chat/messages/{session_id}`
+- `POST /v1/chat/session` — Spin up a persistent chat session thread
+- `GET /v1/chat/sessions/{client_id}` — Retrieve all active chat sessions metadata for a client
+- `GET /v1/chat/session/{session_id}` — Fetch metadata for a specific session wrapper
+- `DELETE /v1/chat/session/{session_id}` — Permanently purge a chat session and its history
+- `POST /v1/chat/send` — Send a prompt/message payload to the persistent agent
+- `GET /v1/chat/messages/{session_id}` — Fetch chronological turn-by-turn conversational history array
+
+### Dashboard
+- `GET /v1/dashboard/client/{client_id}` — Get aggregate dashboard metrics for a single specific client
+- `GET /v1/dashboard/all` — Aggregate metrics and score mappings across the entire firm
 
 
 ## Notes
@@ -184,14 +195,6 @@ This repository includes a few standalone scripts in the root directory for rapi
 - **`test_chat.py`**: A quick utility designed to test the FastAPI chat endpoints and ensure that localized prompts are successfully streaming or receiving payloads from the running server.
 - **`test_sqlite.py`**: An identical testing script meant purely for isolating and establishing direct schema mappings with the SQLite database via `mcp-sqlite`. Use this to ensure your physical database file exists and is readable by the executable driver.
 - **`test_chroma.py`**: A dedicated diagnostic script for validating the MCP architecture block. It safely spins up the `chroma-mcp-server` subprocess asynchronously, tests the dynamically constructed absolute paths via standard I/O streams, and prints out all the vector tooling dynamically exposed to Langchain (e.g. `chroma_create_collection`). Use this to ensure your Windows paths or virtual environment executable mappings aren't broken before booting the main app!
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test locally
-5. Submit a pull request
 
 ## License
 
