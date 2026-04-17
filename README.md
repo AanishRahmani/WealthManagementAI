@@ -68,11 +68,9 @@ This will launch:
 python run_api.py
 ```
 ## First time startup may take time to initialize DB 
-Then visit:
-- `http://127.0.0.1:8081/docs`
-- to see the endpoints swagger UI
+- this will start a backend service at: `http://127.0.0.1:8081`
 
-In a second terminal:
+## In a second terminal:
 
 ```bash
 cd frontend
@@ -152,7 +150,7 @@ The local chat agent dynamically fetches data via real-time tool loops using **[
 - Export client reports as JSON.
 
 ## API Endpoints
-
+- to test the endpoints visit: `http://localhost:8081/docs` (Swagger UI)
 ### Upload
 - `POST /v1/upload` — Upload portfolio documents and related files
 
