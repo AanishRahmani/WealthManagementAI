@@ -195,6 +195,24 @@ This repository includes a few standalone scripts in the root directory for rapi
 - **`test_sqlite.py`**: An identical testing script meant purely for isolating and establishing direct schema mappings with the SQLite database via `mcp-sqlite`. Use this to ensure your physical database file exists and is readable by the executable driver.
 - **`test_chroma.py`**: A dedicated diagnostic script for validating the MCP architecture block. It safely spins up the `chroma-mcp-server` subprocess asynchronously, tests the dynamically constructed absolute paths via standard I/O streams, and prints out all the vector tooling dynamically exposed to Langchain (e.g. `chroma_create_collection`). Use this to ensure your Windows paths or virtual environment executable mappings aren't broken before booting the main app!
 
+## Example Portfolio CSV
+
+You can find an example portfolio CSV in `data/uploads/portfolio.csv` or use the following data to test the platform:
+
+```csv
+Ticker,Security_Name,Asset_Class,Sector,Quantity,Price,Market_Value,Weight_Percent,Country,Currency
+AAPL,Apple Inc,Equity,Technology,25,192.50,4812.50,12.8,USA,USD
+MSFT,Microsoft Corp,Equity,Technology,18,421.20,7581.60,20.1,USA,USD
+GOOGL,Alphabet Inc,Equity,Communication,10,165.40,1654.00,4.4,USA,USD
+NVDA,NVIDIA Corp,Equity,Technology,12,905.10,10861.20,28.8,USA,USD
+JPM,JPMorgan Chase,Equity,Financials,20,198.70,3974.00,10.5,USA,USD
+JNJ,Johnson & Johnson,Equity,Healthcare,15,154.80,2322.00,6.2,USA,USD
+BND,Vanguard Total Bond Market ETF,Bond,Fixed Income,40,72.15,2886.00,7.7,USA,USD
+GLD,SPDR Gold Shares,Alternative,Commodities,8,214.60,1716.80,4.6,USA,USD
+VNQ,Vanguard Real Estate ETF,Alternative,Real Estate,12,88.40,1060.80,2.8,USA,USD
+CASH,Cash Position,Cash,Cash,1,4800.00,4800.00,12.7,USA,USD
+```
+
 ## License
 
 This project is for educational and demonstration purposes.
